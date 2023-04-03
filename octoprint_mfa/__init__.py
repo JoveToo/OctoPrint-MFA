@@ -11,13 +11,15 @@ import base64
 import json
 from flask import make_response, render_template, abort
 from octoprint_mfa.mfa_user_manager import MFAUserManager
-
+from octoprint.vendor.flask_principal import Identity, identity_changed
+from octoprint.events import Events, eventManager
 from octoprint.server import NO_CONTENT
 
 from webauthn.helpers.structs import (
     AuthenticatorSelectionCriteria,
     ResidentKeyRequirement,
     RegistrationCredential,
+    AuthenticationCredential
 )
 
 
@@ -105,6 +107,8 @@ class MFAPlugin(
                 rp_id="localhost"
                 )
 
+            self._stored_challenge = options.challenge
+
             return webauthn.options_to_json(options)
         
         if request.values.get("passkeys") is not None:
@@ -114,22 +118,74 @@ class MFAPlugin(
                         "name": x["name"],
                         "credential_id": x["credential_id"],
                         "rp_id": x["rp_id"]
-                    },
-                    flask_login.utils.current_user.get_webauthnCredentials()
-                    )
+                        },
+                        flask_login.utils.current_user.
+                        get_webauthnCredentials()
+                        )
                 )
             )
         return abort(404)
     
     def get_api_commands(self):
-        return {"verify-registration": [], "remove-credential": ["data"]}
+        return {"verify-registration": [], "verify-authentication": [], "remove-credential": ["data"]}
 
     def on_api_command(self, command, data):
         current_user = flask_login.utils.current_user
         user_id = current_user.get_name()
-        if not user_id:
+        if not user_id and command != "verify-authentication":
             return flask.abort(403)
 
+        if command == "verify-authentication":
+            try:
+                credential = AuthenticationCredential.parse_raw(
+                        json.dumps(data["data"])
+                    )
+                user_id = credential.response.user_handle.decode("utf-8")
+                credential_id = credential.id
+                #base64.b64encode(credential.id).decode("utf-8")
+
+                stored_credential = self._user_manager.find_credential_from_user(user_id, credential_id)
+
+                result = webauthn.verify_authentication_response(
+                    credential=credential,
+                    expected_challenge=self._stored_challenge,
+                    expected_origin="http://localhost:5000",
+                    expected_rp_id="localhost",
+                    credential_public_key=base64.b64decode(
+                        stored_credential["credential_public_key"]
+                        ),
+                    credential_current_sign_count=stored_credential["current_sign_count"],
+                )
+
+            except Exception as e:
+                self._logger.info(
+                    "Authentication verification failed with " + str(e)
+                    )
+                return flask.abort(401)
+
+            user = self._user_manager.find_user(user_id)
+            flask_login.login_user(user)
+
+            identity_changed.send(
+                flask.current_app._get_current_object(), identity=Identity(user.get_id())
+            )
+            flask.session["login_mechanism"] = "http"
+
+            logging.getLogger(__name__).info(
+                "Actively logging in user {}".format(
+                    user.get_id()
+                )
+            )
+            eventManager().fire(
+                    Events.USER_LOGGED_IN, payload={"username": user.get_id()}
+                )
+            logging.getLogger(__name__).info(f"Logging in user {user_id} via passkey")
+
+            r = flask.jsonify(success=True)
+            r.delete_cookie("active_logout")
+
+            return r
+        
         if command == "verify-registration":
             try:
                 result = webauthn.verify_registration_response(
@@ -149,13 +205,14 @@ class MFAPlugin(
             credential = {
                 "name": data["passkeyName"],
                 "credential_id": 
-                    base64.b64encode(result.credential_id).decode("utf-8"),
+                    data["data"]["id"],
                 "credential_public_key": 
                     base64.b64encode(result.credential_public_key).decode(
                     "utf-8"
                     ),
                 "sign_count": result.sign_count,
-                "rp_id": "localhost"
+                "rp_id": "localhost",
+                "current_sign_count": 0,
             }
 
             self._user_manager.add_credential_to_user(

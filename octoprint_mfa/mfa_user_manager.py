@@ -183,6 +183,16 @@ class MFAUserManager(FilebasedUserManager):
             return True
 
         return False      
+    
+    def find_credential_from_user(self, username, credential_id):
+        if username not in self._users:
+            raise UnknownUser(username)
+        
+        for cred in self._users[username]._webauthnCredentials:
+            if cred["credential_id"] == credential_id:
+                return cred
+        
+        raise UnknownUser(username)
 
 
 class MFAUser(User):

@@ -131,9 +131,13 @@
             elemSuccess.innerHTML = '';
             elemError.innerHTML = '';
 
+            let csrf_token = ("; " + document.cookie).split("; csrf_token_P5000=").pop().split(";")[0];
+            elemSuccess.innerHTML = csrf_token;
+
             // GET authentication options from the endpoint that calls
             // @simplewebauthn/server -> generateAuthenticationOptions()
             const resp = await fetch('/api/plugin/mfa?generate-authentication-options');
+            //const resp = OctoPrintClient.prototype.get(OctoPrintClient.prototype.getSimpleApiUrl("mfa") + "?generate-registration-options=true", {});
             const options = await resp.json();
 
             let asseResp;
@@ -148,20 +152,24 @@
 
             // POST the response to the endpoint that calls
             // @simplewebauthn/server -> verifyAuthenticationResponse()
-            const verificationResp = await fetch('/verify-authentication', {
+            const verificationResp = await fetch('/api/plugin/mfa', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRF-Token': csrf_token,
             },
-            body: JSON.stringify(asseResp),
+            body: JSON.stringify({
+                "command" : "verify-authentication",
+                "data": asseResp,
+            })
             });
 
             // Wait for the results of verification
             const verificationJSON = await verificationResp.json();
 
             // Show UI appropriate for the `verified` status
-            if (verificationJSON && verificationJSON.verified) {
-                elemSuccess.innerHTML = 'Success!';
+            if (verificationJSON && verificationJSON.success) {
+                window.location.href = "/";
             } else {
                 elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${JSON.stringify(verificationJSON,)}</pre>`;
             }

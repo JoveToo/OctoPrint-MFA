@@ -1,5 +1,5 @@
 $(function () {
-    function UserMfaViewModel(parameters) {
+    function UserSettingsMfaViewModel(parameters) {
         var self = this;
 
         self.loginState = parameters[0];
@@ -41,10 +41,9 @@ $(function () {
                 .then(function(options) {
                     return OctoPrint.plugins.mfa.startRegistration(options)
                 })
-                .then(function(authResponse) {
-                    return OctoPrint.plugins.mfa.verifyRegistration({"passkeyName" : self.passkeyName(), "data": authResponse})
-                }
-                )
+                .then(function(regResponse) {
+                    return OctoPrint.plugins.mfa.verifyRegistration({"passkeyName" : self.passkeyName(), "data": regResponse})
+                })
                 .then(function(result){
                     if (result["success"])
                         self.requestData();
@@ -64,9 +63,37 @@ $(function () {
         }
     }
 
+    function LoginMfaViewModel(parameters) {
+        var self = this;
+
+        self.loginState = parameters[0];
+
+        self.login = function(data) {
+            OctoPrint.generateAuthenticationOptions()
+            .then(function(options) {
+                OctoPrint.plugins.startAuthentication({"data" : data})
+            })
+            .then(function(authResponse) {
+                OctoPrint.plugins.verifyAuthentication({"data" : authResponse})
+            })
+            .then(function(result)  {
+                var test = result;
+            })
+            .fail(function (err) {
+                var test = err;
+            })
+        }
+    }
+
     OCTOPRINT_VIEWMODELS.push([
-        UserMfaViewModel,
+        UserSettingsMfaViewModel,
         ["loginStateViewModel"],
         ["#usersettings_plugin_mfa"]
+    ]);
+
+    OCTOPRINT_VIEWMODELS.push([
+        LoginMfaViewModel,
+        ["loginStateViewModel"],
+        []
     ]);
 });
