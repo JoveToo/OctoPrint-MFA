@@ -1,0 +1,39 @@
+<h3>{{ _("Passkey Registration") }}</h3>
+<table class="table table-condensed table-hover" id="system_users">
+    <thead>
+    <tr>
+        <th class="settings_users_name">{{ _('Name') }}</th>
+        <th class="settings_users_passkeys">{{ _('Passkeys') }}</th>
+    </tr>
+    </thead>
+    <tbody data-bind="foreach: users.listHelper.paginatedItems">
+    <tr>
+        <td class="settings_users_name"><span data-bind="text: name"></span></td>
+        <td class="settings_users_passkeys">
+            <table class="table settings_users_details_table">
+                <thead>
+                <tr>
+                    <th class="settings_users_passkey_list">{{ _('Passkeys') }}</th>
+                    <th class="settings_users_paskeys_list_actions">{{ _('Action') }}</th>
+                </tr>
+                </thead>
+                <tr>
+                    <td class="settings_users_passkey_value" data-bind="text: $root.accessViewModel.groupList($data)"></td>
+                    <td class="settings_users_passkey_actions" data-bind="text: $root.accessViewModel.permissionList($data)"></td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+    </tbody>
+</table>
+<div class="pagination pagination-mini pagination-centered">
+    <ul>
+        <li data-bind="css: {disabled: users.listHelper.currentPage() === 0}"><a href="#" data-bind="click: users.listHelper.prevPage">«</a></li>
+    </ul>
+    <ul data-bind="foreach: access.users.listHelper.pages">
+        <li data-bind="css: { active: $data.number === users.listHelper.currentPage(), disabled: $data.number === -1 }"><a href="#" data-bind="text: $data.text, click: function() { users.listHelper.changePage($data.number); }"></a></li>
+    </ul>
+    <ul>
+        <li data-bind="css: {disabled: users.listHelper.currentPage() === users.listHelper.lastPage()}"><a href="#" data-bind="click: users.listHelper.nextPage">»</a></li>
+    </ul>
+</div>

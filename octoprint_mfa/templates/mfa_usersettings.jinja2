@@ -1,0 +1,58 @@
+
+<script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
+<legend>{{ _('Registered Passkeys') }}</legend>
+
+<div data-bind="visible: passkeys.allSize() <= 0">
+    <p>{{ _('There are no passkeys registered yet.') }}</p>
+</div>
+
+<div data-bind="visible: passkeys.allSize() > 0">
+    <table class="table table-condensed table-hover" id="settings_plugin_mfa_passkeys_table">
+        <thead>
+        <tr>
+            <th class="settings_plugin_mfa_passkey">{{ _('Name') }}</th>
+            <th class="settings_plugin_mfa_passkey">{{ _('Hostname') }}</th>
+            <th class="settings_plugin_mfa_passkey">{{ _('Credential Identifier') }}</th>
+            <th class="settings_plugin_mfa_actions">{{ _('Action') }}</th>
+        </tr>
+        </thead>
+        <tbody data-bind="foreach: passkeys.paginatedItems">
+        <tr>
+            <td class="settings_plugin_mfa_passkey"><span data-bind="text: name"></span></td>
+            <td class="settings_plugin_mfa_passkey"><span data-bind="text: rp_id"></span></td>
+            <td class="settings_plugin_mfa_passkey"><span data-bind="text: credential_id"></span></td>
+            <td class="settings_plugin_mfa_actions"><a href="javascript:void(0)" title="{{ _('Delete')|edq }}" class="far fa-trash-alt" data-bind="click: function() { $parent.deletePasskey($data) }"></a></td>
+        </tr>
+        </tbody>
+    </table>
+    <div class="pagination pagination-mini pagination-centered">
+        <ul>
+            <li data-bind="css: {disabled: passkeys.currentPage() === 0}"><a href="javascript:void(0)" data-bind="click: passkeys.prevPage">«</a></li>
+        </ul>
+        <ul data-bind="foreach: passkeys.pages">
+            <li data-bind="css: { active: $data.number === $root.passkeys.currentPage(), disabled: $data.number === -1 }"><a href="javascript:void(0)" data-bind="text: $data.text, click: function() { $root.passkeys.changePage($data.number); }"></a></li>
+        </ul>
+        <ul>
+            <li data-bind="css: {disabled: passkeys.currentPage() === passkeys.lastPage()}"><a href="javascript:void(0)" data-bind="click: passkeys.nextPage">»</a></li>
+        </ul>
+    </div>
+</div>
+
+<legend>{{ _('Register new passkey') }}</legend>
+
+<form class="form-horizontal" onsubmit="return false;">
+    <div class="control-group">
+        <label class="control-label">{{ _('Passkey name') }}</label>
+        <div class="controls">
+            <input type="text" data-bind="value: passkeyName">
+        </div>
+    </div>
+
+    <div class="control-group">
+        <div class="controls">
+            <button class="btn btn-primary" data-bind="click: $root.createPasskey">{{ _('Register') }}</button>
+        </div>
+    </div>
+</form>
+
+
