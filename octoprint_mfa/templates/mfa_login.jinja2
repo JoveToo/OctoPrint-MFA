@@ -135,10 +135,15 @@
             elemError.innerHTML = '';
 
             // get authentication options from server
-            const options = await OctoPrint.get(OctoPrint.getSimpleApiUrl("mfa") + "?generate-authentication-options=true");
-
+            var options;
+            try {
+                options = await OctoPrint.get(OctoPrint.getSimpleApiUrl("mfa") + "?generate-authentication-options=true");
+            } catch (error) {
+                elemError.innerText = error;
+                throw error;
+            }
             // perform the authentication
-            let asseResp;
+            var asseResp;
             try {
                 // Pass the options to the authenticator and wait for a response
                 asseResp = await startAuthentication(options);
@@ -149,7 +154,14 @@
             }
 
             // verify authentication
-            const verificationJSON = await OctoPrint.simpleApiCommand("mfa", "verify-authentication", {"data": asseResp});
+            var verificationJSON;
+            try {
+                verificationJSON = await OctoPrint.simpleApiCommand("mfa", "verify-authentication", {"data": asseResp});
+            } catch (error) {
+                // Some basic error handling
+                elemError.innerText = error;
+                throw error;
+            }
 
             // Show UI appropriate for the `verified` status
             if (verificationJSON && verificationJSON.success) {
