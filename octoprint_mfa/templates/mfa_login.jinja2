@@ -32,7 +32,7 @@
     <script src="{{ url_for("static", filename="js/lib/sockjs.min.js") }}"></script>
     <script src="{{ url_for("static", filename="js/lib/bootstrap/bootstrap.js") }}"></script>
     <script src="{{ url_for("static", filename="js/lib/lodash.min.js") }}"></script>
-    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
+    <script type="text/javascript" src="/plugin/mfa/static/js/simplewebauthn.umd.min.js"></script>
 
     {% assets "js_client" %}
         <script type="text/javascript" src="{{ ASSET_URL }}"></script>
@@ -127,23 +127,17 @@
 
         // Start authentication when the user clicks a button
         elemBegin.addEventListener('click', async () => {
-
+            // get OctoPrint base
             var OctoPrint = window.OctoPrint;
 
             // Reset success/error messages
             elemSuccess.innerHTML = '';
             elemError.innerHTML = '';
 
-            //let csrf_token = ("; " + document.cookie).split("; csrf_token_P5000=").pop().split(";")[0];
-            let csrf_token = OctoPrint.getCookie('csrf_token');
-            elemSuccess.innerHTML = csrf_token;
-
-            // GET authentication options from the endpoint that calls
-            // @simplewebauthn/server -> generateAuthenticationOptions()
-            //const resp = await fetch('/api/plugin/mfa?generate-authentication-options');
-            //const options = await resp.json();
+            // get authentication options from server
             const options = await OctoPrint.get(OctoPrint.getSimpleApiUrl("mfa") + "?generate-authentication-options=true");
 
+            // perform the authentication
             let asseResp;
             try {
                 // Pass the options to the authenticator and wait for a response
@@ -154,26 +148,13 @@
                 throw error;
             }
 
-            // POST the response to the endpoint that calls
-            // @simplewebauthn/server -> verifyAuthenticationResponse()
-            const verificationResp = await fetch('/api/plugin/mfa', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrf_token,
-            },
-            body: JSON.stringify({
-                "command" : "verify-authentication",
-                "data": asseResp,
-            })
-            });
-
-            // Wait for the results of verification
-            const verificationJSON = await verificationResp.json();
+            // verify authentication
+            const verificationJSON = await OctoPrint.simpleApiCommand("mfa", "verify-authentication", {"data": asseResp});
 
             // Show UI appropriate for the `verified` status
             if (verificationJSON && verificationJSON.success) {
-                window.location.href = "/";
+                // redirect back to basic url to load UI
+                window.location.href = REDIRECT_URL;
             } else {
                 elemError.innerHTML = `Oh no, something went wrong! Response: <pre>${JSON.stringify(verificationJSON,)}</pre>`;
             }

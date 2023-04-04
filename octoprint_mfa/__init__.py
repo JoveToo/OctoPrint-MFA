@@ -35,7 +35,7 @@ class MFAPlugin(
     """
     def get_assets(self):
         return dict(
-            js=["js/mfa.js"],
+            js=["js/mfa.js", "js/simplewebauthn.umd.min.js"],
             clientjs=["clientjs/mfa.js"]
         )
 
