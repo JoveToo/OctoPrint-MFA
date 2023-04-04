@@ -143,6 +143,8 @@ class MFAPlugin(
         if not user_id and command != "verify-authentication":
             return flask.abort(403)
 
+        request = flask.request
+
         if command == "verify-authentication":
             try:
                 # parse the returned data
@@ -163,8 +165,8 @@ class MFAPlugin(
                 result = webauthn.verify_authentication_response(
                     credential=credential,
                     expected_challenge=self._stored_challenge,
-                    expected_origin="http://localhost:5000",
-                    expected_rp_id="localhost",
+                    expected_origin=request.host_url.rstrip("/"),
+                    expected_rp_id=request.server_name,
                     credential_public_key=base64.b64decode(
                         stored_credential["credential_public_key"]
                         ),
@@ -236,8 +238,8 @@ class MFAPlugin(
                         json.dumps(data["data"])
                     ),
                     expected_challenge=self._stored_challenge,
-                    expected_rp_id="localhost",
-                    expected_origin="http://localhost:5000",
+                    expected_rp_id=request.server_name,
+                    expected_origin=request.host_url.rstrip("/"),
                 )
             except Exception as e:
                 self._logger.info(
@@ -249,12 +251,12 @@ class MFAPlugin(
                 "name": data["passkeyName"],
                 "credential_id": 
                     data["data"]["id"],
-                "credential_public_key": 
+                "credential_public_key":
                     base64.b64encode(result.credential_public_key).decode(
                     "utf-8"
                     ),
                 "sign_count": result.sign_count,
-                "rp_id": "localhost",
+                "rp_id": request.server_name,
                 "current_sign_count": 0,
             }
 
