@@ -39,19 +39,21 @@
     {% endassets %}
 
     <script src="{{ url_for("static", filename="js/login/login.js") }}"></script>
-    <!-- This launches the autofill feature of WebAuthn, the browser
-        will look for security keys with credentials for octoprint.
-     -->
     <script>
-        const { startAuthentication } = SimpleWebAuthnBrowser;
+        // This launches the autofill feature of WebAuthn, the browser
+        // will look for security keys with credentials for octoprint.
+        // It is fine if this fails.
+        try {
+            const { startAuthentication } = SimpleWebAuthnBrowser;
 
-        fetch('/api/plugin/mfa?generate-authentication-options')
-        .then((response) => response.json())
-        .then((options) => {
-            startAuthentication(options, true)
-            .then(authResp => sendToServerForVerificationAndLogin)
-            .catch(err => {});
-        });
+            fetch('/api/plugin/mfa?generate-authentication-options')
+            .then((response) => response.json())
+            .then((options) => {
+                startAuthentication(options, true)
+                .then(authResp => sendToServerForVerificationAndLogin)
+                .catch(err => {});
+            });
+        } catch (err){}
     </script>
 </head>
 <body>
