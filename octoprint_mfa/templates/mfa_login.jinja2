@@ -79,7 +79,7 @@
 
     <div id="login" class="container">
         <form class="form-signin">
-            <h2 class="form-signin-heading" data-test-id="login-title">{{ _('Please log in (Jove)') }}</h2>
+            <h2 class="form-signin-heading" data-test-id="login-title">{{ _('Please log in') }}</h2>
 
             <div id="login-error-credentials" class="alert alert-error" data-test-id="login-error">{{ _('Incorrect username or password. Hint: Both are case sensitive!') }}</div>
             <div id="login-error-rate" class="alert alert-error" data-test-id="login-error-rate">{{ _('You have made too many failed login attempts. Please try again later.') }}</div>
@@ -98,10 +98,10 @@
                 <input type="checkbox" id="login-remember" data-test-id="login-remember-me"> {{ _('Remember me') }}
             </label>
             <button class="btn btn-block btn-large btn-primary" id="login-button" data-test-id="login-submit" type="submit">{{ _('Log in') }}</button>
-        </form>
-            <button class="btn btn-block btn-large btn-primary" id="test-button"> TEST</button>
+            <button class="btn btn-block btn-large btn-primary" id="passkey-button">Login with passkey</button>
             <div id="success"></div>
             <div id="error"></div>
+        </form>
     </div>
 
     <div id="login-overlay">
@@ -119,7 +119,7 @@
 
     <script>
         // <button>
-        const elemBegin = document.getElementById('test-button');
+        const elemBegin = document.getElementById('passkey-button');
         // <span>/<p>/etc...
         const elemSuccess = document.getElementById('success');
         // <span>/<p>/etc...

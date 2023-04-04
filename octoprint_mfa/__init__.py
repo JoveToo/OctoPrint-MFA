@@ -11,10 +11,14 @@ import base64
 import json
 from flask import make_response, render_template, abort
 from octoprint_mfa.mfa_user_manager import MFAUserManager
+import octoprint.util.net as util_net
 from octoprint.vendor.flask_principal import Identity, identity_changed
 from octoprint.events import Events, eventManager
 from octoprint.server import NO_CONTENT
-
+from octoprint.server.util.flask import (
+    get_remote_address,
+    session_signature,
+)
 from webauthn.helpers.structs import (
     AuthenticatorSelectionCriteria,
     ResidentKeyRequirement,
@@ -127,7 +131,11 @@ class MFAPlugin(
         return abort(404)
     
     def get_api_commands(self):
-        return {"verify-registration": [], "verify-authentication": [], "remove-credential": ["data"]}
+        return {
+            "verify-registration": [], 
+            "verify-authentication": [], 
+            "remove-credential": ["data"]
+        }
 
     def on_api_command(self, command, data):
         current_user = flask_login.utils.current_user
@@ -137,15 +145,21 @@ class MFAPlugin(
 
         if command == "verify-authentication":
             try:
+                # parse the returned data
                 credential = AuthenticationCredential.parse_raw(
                         json.dumps(data["data"])
                     )
+                # decide the user_id from the credential response.
+                # this is returned directly by the authenticator.
                 user_id = credential.response.user_handle.decode("utf-8")
-                credential_id = credential.id
-                #base64.b64encode(credential.id).decode("utf-8")
 
+                credential_id = credential.id
+
+                # now we use this credential ID to find the associated
+                # local user.
                 stored_credential = self._user_manager.find_credential_from_user(user_id, credential_id)
 
+                # validate the authentication response against stored data
                 result = webauthn.verify_authentication_response(
                     credential=credential,
                     expected_challenge=self._stored_challenge,
@@ -154,7 +168,9 @@ class MFAPlugin(
                     credential_public_key=base64.b64decode(
                         stored_credential["credential_public_key"]
                         ),
-                    credential_current_sign_count=stored_credential["current_sign_count"],
+                    credential_current_sign_count=stored_credential[
+                        "current_sign_count"
+                    ],
                 )
 
             except Exception as e:
@@ -163,11 +179,23 @@ class MFAPlugin(
                     )
                 return flask.abort(401)
 
+            # now we find the actual user this belongs to
             user = self._user_manager.find_user(user_id)
+
+            # the following is copied from the login 
+            #  @api.route("/login")
+            user = self._user_manager.login_user(user)
+            flask.session["usersession.id"] = user.session
+            flask.session["usersession.signature"] = session_signature(
+                user_id, user.session
+            )
+            flask.g.user = user
+
             flask_login.login_user(user)
 
             identity_changed.send(
-                flask.current_app._get_current_object(), identity=Identity(user.get_id())
+                flask.current_app._get_current_object(),
+                identity=Identity(user.get_id())
             )
             flask.session["login_mechanism"] = "http"
 
@@ -176,16 +204,31 @@ class MFAPlugin(
                     user.get_id()
                 )
             )
+
+            remote_addr = get_remote_address(flask.request)
+            response = user.as_dict()
+            response["_is_external_client"] = self._settings.getBoolean(
+                ["server", "ipCheck", "enabled"]
+            ) and not util_net.is_lan_address(
+                remote_addr,
+                additional_private=self._settings.get(
+                    ["server", "ipCheck", "trustedSubnets"]
+                ),
+            )
+            response["_login_mechanism"] = flask.session["login_mechanism"]
+            response["success"] = True
+            r = make_response(flask.jsonify(response))
+            r.delete_cookie("active_logout")
+
             eventManager().fire(
                     Events.USER_LOGGED_IN, payload={"username": user.get_id()}
                 )
-            logging.getLogger(__name__).info(f"Logging in user {user_id} via passkey")
-
-            r = flask.jsonify(success=True)
-            r.delete_cookie("active_logout")
+            logging.getLogger(__name__).info(
+                f"Logging in user {user_id} via passkey"
+                )
 
             return r
-        
+
         if command == "verify-registration":
             try:
                 result = webauthn.verify_registration_response(
