@@ -57,10 +57,10 @@ class MFAPlugin(
     """
     def get_template_configs(self):
         return [
-            dict(
-                type="settings",
-                template="mfa_settings.jinja2"
-            ),
+            # dict(
+            #    type="settings",
+            #    template="mfa_settings.jinja2"
+            # ),
             dict(
                 type="usersettings",
                 template="mfa_usersettings.jinja2",

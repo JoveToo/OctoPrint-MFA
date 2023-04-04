@@ -44,12 +44,10 @@
         // will look for security keys with credentials for octoprint.
         // It is fine if this fails.
         try {
-            const { startAuthentication } = SimpleWebAuthnBrowser;
-
             fetch('/api/plugin/mfa?generate-authentication-options')
             .then((response) => response.json())
             .then((options) => {
-                startAuthentication(options, true)
+                SimpleWebAuthnBrowser.startAuthentication(options, true)
                 .then(authResp => sendToServerForVerificationAndLogin)
                 .catch(err => {});
             });
@@ -148,7 +146,7 @@
             var asseResp;
             try {
                 // Pass the options to the authenticator and wait for a response
-                asseResp = await startAuthentication(options);
+                asseResp = await SimpleWebAuthnBrowser.startAuthentication(options);
             } catch (error) {
                 // Some basic error handling
                 elemError.innerText = error;
