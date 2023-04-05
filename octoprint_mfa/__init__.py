@@ -93,7 +93,7 @@ class MFAPlugin(
     def on_api_get(self, request):
         if request.values.get("generate-registration-options") is not None:
             options = webauthn.generate_registration_options(
-                rp_id="localhost",
+                rp_id=request.server_name,
                 rp_name="OctoPrint",
                 user_id=flask_login.utils.current_user.get_name(),
                 user_name=flask_login.utils.current_user.get_name(),
@@ -108,7 +108,7 @@ class MFAPlugin(
 
         if request.values.get("generate-authentication-options") is not None:
             options = webauthn.generate_authentication_options(
-                rp_id="localhost"
+                rp_id=request.server_name
                 )
 
             self._stored_challenge = options.challenge
