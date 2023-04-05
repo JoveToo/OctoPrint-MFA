@@ -225,11 +225,6 @@ class MFAUser(User):
     @property
     def has_webauthnCredentials(self):
         return self._webauthnCredentials.count() > 0
-
-    def as_dict(self):
-        d = User.as_dict(self)
-        d["webauthnCredentials"] = self._webauthnCredentials
-        return d
     
     def get_webauthnCredentials(self):
         return self._webauthnCredentials

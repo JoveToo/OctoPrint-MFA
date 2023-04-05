@@ -1,24 +1,24 @@
 # coding=utf-8
 from __future__ import absolute_import
 
-import webauthn
-import logging
-import octoprint.plugin
+import base64
 import flask_login
 import flask_login.utils
 import flask
-import base64
 import json
+import logging
+import octoprint.plugin
+import octoprint.util.net as util_net
+import webauthn
 from flask import make_response, render_template, abort
 from octoprint_mfa.mfa_user_manager import MFAUserManager
-import octoprint.util.net as util_net
-from octoprint.vendor.flask_principal import Identity, identity_changed
 from octoprint.events import Events, eventManager
 from octoprint.server import NO_CONTENT
 from octoprint.server.util.flask import (
     get_remote_address,
     session_signature,
 )
+from octoprint.vendor.flask_principal import Identity, identity_changed
 from webauthn.helpers.structs import (
     AuthenticatorSelectionCriteria,
     ResidentKeyRequirement,
@@ -69,7 +69,7 @@ class MFAPlugin(
         ]
 
     """
-        octoprint.plugin.UiPlugin methods  
+        octoprint.plugin.UiPlugin methods
     """
     def will_handle_ui(self, request):
         handle_ui = request.path == "/"
@@ -88,7 +88,7 @@ class MFAPlugin(
             render_template("mfa_login.jinja2", **render_kwargs)
             )
     """
-        octoprint.plugin.SimpleApiPlugin methods  
+        octoprint.plugin.SimpleApiPlugin methods
     """
     def on_api_get(self, request):
         if request.values.get("generate-registration-options") is not None:
