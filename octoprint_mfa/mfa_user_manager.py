@@ -13,7 +13,6 @@ from octoprint.access.users import (
     CorruptUserStorage,
     UnknownUser,
     UserAlreadyExists,
-    InvalidUsername
     )
 from octoprint.access.groups import FilebasedGroupManager
 from octoprint.util import get_class, yaml
@@ -185,7 +184,7 @@ class MFAUserManager(FilebasedUserManager):
 
             return True
 
-        return False      
+        return False
     
     def find_credential_from_user(self, username, credential_id):
         if username not in self._users:
@@ -196,6 +195,21 @@ class MFAUserManager(FilebasedUserManager):
                 return cred
         
         raise UnknownUser(username)
+
+    def update_sign_count_on_credential(
+            self,
+            username,
+            credential_id,
+            sign_count,
+            ):
+        if username not in self._users:
+            raise UnknownUser(username)
+
+        self._dirty = self._users[username].update_credential_sign_count(
+            credential_id, sign_count)
+
+        if (self._dirty):
+            self._save()
 
     def add_user(
         self,
@@ -219,7 +233,7 @@ class MFAUserManager(FilebasedUserManager):
             raise UserAlreadyExists(username)
 
         if not username.strip() or username != username.strip():
-            raise InvalidUsername(username)
+            raise Exception("Username '%s' is invalid" % username)
 
         self._users[username] = MFAUser(
             username,
@@ -275,6 +289,7 @@ class MFAUser(User):
         return dirty
 
     def remove_credential(self, credential):
+        dirty = False
         length = len(self._webauthnCredentials)
         self._webauthnCredentials = [
             c for c in self._webauthnCredentials if
@@ -286,6 +301,14 @@ class MFAUser(User):
 
         return dirty
 
+    def update_credential_sign_count(self, credential, count):
+        for c in self._webauthnCredentials:
+            if (c["credential_id"] == credential):
+                if (count >= c["sign_count"]):
+                    c["sign_count"] = count
+                    return True
+
+        return False
 
 
 
