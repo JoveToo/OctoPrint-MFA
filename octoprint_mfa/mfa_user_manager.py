@@ -7,10 +7,13 @@ import os
 import shutil
 
 from octoprint.access.users import (
+    UserManager,
     FilebasedUserManager,
     User,
     CorruptUserStorage,
-    UnknownUser
+    UnknownUser,
+    UserAlreadyExists,
+    InvalidUsername
     )
 from octoprint.access.groups import FilebasedGroupManager
 from octoprint.util import get_class, yaml
@@ -193,6 +196,41 @@ class MFAUserManager(FilebasedUserManager):
                 return cred
         
         raise UnknownUser(username)
+
+    def add_user(
+        self,
+        username,
+        password,
+        active=False,
+        permissions=None,
+        groups=None,
+        apikey=None,
+        overwrite=False,
+    ):
+        if permissions is None:
+            permissions = []
+        permissions = self._to_permissions(*permissions)
+
+        if groups is None:
+            groups = self._group_manager.default_groups
+        groups = self._to_groups(*groups)
+
+        if username in self._users and not overwrite:
+            raise UserAlreadyExists(username)
+
+        if not username.strip() or username != username.strip():
+            raise InvalidUsername(username)
+
+        self._users[username] = MFAUser(
+            username,
+            UserManager.create_password_hash(password, settings=self._settings),
+            active,
+            permissions,
+            groups,
+            apikey=apikey,
+        )
+        self._dirty = True
+        self._save()
 
 
 class MFAUser(User):
