@@ -171,7 +171,7 @@ class MFAPlugin(
                         stored_credential["credential_public_key"]
                         ),
                     credential_current_sign_count=stored_credential[
-                        "current_sign_count"
+                        "sign_count"
                     ],
                 )
 
@@ -183,6 +183,13 @@ class MFAPlugin(
 
             # now we find the actual user this belongs to
             user = self._user_manager.find_user(user_id)
+
+            # first we update the sign count on the user
+            self._user_manager.update_sign_count_on_credential(
+                user.get_name(),
+                credential_id,
+                result.new_sign_count
+                )
 
             # the following is copied from the login 
             #  @api.route("/login")
@@ -257,7 +264,6 @@ class MFAPlugin(
                     ),
                 "sign_count": result.sign_count,
                 "rp_id": request.server_name,
-                "current_sign_count": 0,
             }
 
             self._user_manager.add_credential_to_user(
