@@ -82,6 +82,12 @@ content:
     [ alt_names ]
     DNS.1 = octopi
 
+If your router adds a suffix to your domain names (like
+.local), you can add additional lines in the alt_names
+section for example:
+
+    DNS.2 = octopi.local
+
 Now we generate the actual certificate from our request and
 with the extension defined above:
 
