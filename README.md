@@ -11,6 +11,17 @@ that is include below.
 Other than security limitations, WebAuthn is
 supported on most platforms by all major browsers.
 
+## Using the plugin
+
+You can use this plugin by going to your user
+settings and clicking the "Passkeys" tab and
+add a passkey there. Follow the prompts of 
+your browser/platform to create the passkey.
+
+After registering the key, you can log in
+on the login screen with the "Login with Passkey"
+button. You do not have to provide a user name.
+
 ## Installing a CA signed certificate
 
 ### Introduction
